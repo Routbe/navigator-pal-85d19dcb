@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { filterIntegrations } from "./integrations-catalog";
+import { filterIntegrations, isLive } from "./integrations-catalog";
 
 const ids = (f: Parameters<typeof filterIntegrations>[0]) => filterIntegrations(f).map((i) => i.id);
 
 describe("integrations grid", () => {
-  it("popular shows Spotify, Discord, Steam, Xbox, PlayStation", () => {
-    expect(ids("popular")).toEqual(["spotify", "discord", "steam", "xbox", "playstation"]);
+  it("Werk & Code holds GitHub, GitLab, WakaTime, LinkedIn", () => {
+    expect(ids("work")).toEqual(["github", "gitlab", "wakatime", "linkedin"]);
   });
-  it("music shows Spotify, Apple Music, Last.fm, SoundCloud", () => {
-    expect(ids("music")).toEqual(["spotify", "applemusic", "lastfm", "soundcloud"]);
+  it("Gezondheid & Fitness holds Strava, Oura, Garmin, Apple Health, Google Fit", () => {
+    expect(ids("health")).toEqual(["strava", "oura", "garmin", "applehealth", "googlefit"]);
   });
-  it("gaming shows Steam, Xbox, PSN, Riot, Epic, Battle.net", () => {
-    expect(ids("gaming")).toEqual(["steam", "xbox", "playstation", "riot", "epic", "battlenet"]);
+  it("crypto tiles are live, other payment tiles are coming soon", () => {
+    expect(filterIntegrations("payments").filter(isLive).map((i) => i.id)).toEqual(["lightning", "monero", "ethereum"]);
   });
-  it("only Spotify can really be connected for now", () => {
-    expect(filterIntegrations("all").filter((i) => i.live).map((i) => i.id)).toEqual(["spotify"]);
+  it("W.social sits in Socials and connects by handle", () => {
+    expect(filterIntegrations("socials").find((i) => i.id === "wsocial")?.mode).toBe("handle");
   });
 });
