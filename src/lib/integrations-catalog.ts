@@ -1,41 +1,102 @@
-/** Live Presence integrations shown in the Studio grid (browser-safe). */
-export type IntegrationId =
-  | "spotify" | "applemusic" | "lastfm" | "soundcloud"
-  | "discord" | "steam" | "xbox" | "playstation" | "riot" | "epic" | "battlenet"
-  | "twitch" | "youtube" | "kick"
-  | "instagram" | "tiktok" | "x" | "bluesky";
+/** Connections Hub catalogue (browser-safe). */
+export type IntegrationCategory =
+  | "music" | "gaming" | "streaming" | "socials" | "work" | "health"
+  | "design" | "culture" | "home" | "payments";
 
-export type IntegrationCategory = "music" | "gaming" | "streaming" | "socials";
+/**
+ * How a tile connects:
+ * - oauth   → full sign-in flow (Spotify)
+ * - handle  → public username/handle, fetched server-side
+ * - address → public wallet address (QR + support button)
+ * - soon    → "Binnenkort"
+ */
+export type ConnectMode = "oauth" | "handle" | "address" | "soon";
 
 export type Integration = {
-  id: IntegrationId;
+  id: string;
   label: string;
   category: IntegrationCategory;
-  /** Key in simple-icons, or null for a generic icon. */
+  /** Key in simple-icons, "custom:<name>" for an inline logo, or null. */
   icon: string | null;
-  /** Only working integrations can be connected; others show "coming soon". */
-  live: boolean;
+  mode: ConnectMode;
+  /** Input hint for handle/address tiles. */
+  placeholder?: string;
+  /** Sign-in provider whose verified account can fast-track this tile. */
+  sso?: "github" | "gitlab" | "bluesky";
 };
 
+const soon = (id: string, label: string, category: IntegrationCategory, icon: string | null): Integration => ({
+  id, label, category, icon, mode: "soon",
+});
+
 export const INTEGRATIONS: Integration[] = [
-  { id: "spotify", label: "Spotify", category: "music", icon: "siSpotify", live: true },
-  { id: "applemusic", label: "Apple Music", category: "music", icon: "siApplemusic", live: false },
-  { id: "lastfm", label: "Last.fm", category: "music", icon: "siLastdotfm", live: false },
-  { id: "soundcloud", label: "SoundCloud", category: "music", icon: "siSoundcloud", live: false },
-  { id: "discord", label: "Discord", category: "socials", icon: "siDiscord", live: false },
-  { id: "steam", label: "Steam", category: "gaming", icon: "siSteam", live: false },
-  { id: "xbox", label: "Xbox", category: "gaming", icon: null, live: false },
-  { id: "playstation", label: "PlayStation Network", category: "gaming", icon: "siPlaystation", live: false },
-  { id: "riot", label: "Riot Games", category: "gaming", icon: "siRiotgames", live: false },
-  { id: "epic", label: "Epic Games", category: "gaming", icon: "siEpicgames", live: false },
-  { id: "battlenet", label: "Battle.net", category: "gaming", icon: "siBattledotnet", live: false },
-  { id: "twitch", label: "Twitch", category: "streaming", icon: "siTwitch", live: false },
-  { id: "youtube", label: "YouTube", category: "streaming", icon: "siYoutube", live: false },
-  { id: "kick", label: "Kick", category: "streaming", icon: "siKick", live: false },
-  { id: "instagram", label: "Instagram", category: "socials", icon: "siInstagram", live: false },
-  { id: "tiktok", label: "TikTok", category: "socials", icon: "siTiktok", live: false },
-  { id: "x", label: "X", category: "socials", icon: "siX", live: false },
-  { id: "bluesky", label: "Bluesky", category: "socials", icon: "siBluesky", live: false },
+  // Muziek
+  { id: "spotify", label: "Spotify", category: "music", icon: "siSpotify", mode: "oauth" },
+  soon("applemusic", "Apple Music", "music", "siApplemusic"),
+  soon("lastfm", "Last.fm", "music", "siLastdotfm"),
+  soon("soundcloud", "SoundCloud", "music", "siSoundcloud"),
+  soon("deezer", "Deezer", "music", "siDeezer"),
+  soon("youtubemusic", "YouTube Music", "music", "siYoutubemusic"),
+  // Gaming
+  soon("steam", "Steam", "gaming", "siSteam"),
+  soon("xbox", "Xbox", "gaming", "custom:xbox"),
+  soon("playstation", "PlayStation Network", "gaming", "siPlaystation"),
+  soon("riot", "Riot Games", "gaming", "siRiotgames"),
+  soon("epic", "Epic Games", "gaming", "siEpicgames"),
+  soon("battlenet", "Battle.net", "gaming", "siBattledotnet"),
+  soon("roblox", "Roblox", "gaming", "siRoblox"),
+  // Streaming
+  soon("twitch", "Twitch", "streaming", "siTwitch"),
+  { id: "youtube", label: "YouTube", category: "streaming", icon: "siYoutube", mode: "handle", placeholder: "@kanaal of UC… kanaal-ID" },
+  soon("kick", "Kick", "streaming", "siKick"),
+  // Socials
+  { id: "bluesky", label: "Bluesky", category: "socials", icon: "siBluesky", mode: "handle", placeholder: "naam.bsky.social", sso: "bluesky" },
+  { id: "wsocial", label: "W.social", category: "socials", icon: "custom:wsocial", mode: "handle", placeholder: "naam.wsocial.eu" },
+  soon("instagram", "Instagram", "socials", "siInstagram"),
+  soon("tiktok", "TikTok", "socials", "siTiktok"),
+  soon("x", "X", "socials", "siX"),
+  soon("discord", "Discord", "socials", "siDiscord"),
+  soon("reddit", "Reddit", "socials", "siReddit"),
+  soon("mastodon", "Mastodon", "socials", "siMastodon"),
+  soon("threads", "Threads", "socials", "siThreads"),
+  soon("snapchat", "Snapchat", "socials", "siSnapchat"),
+  soon("tumblr", "Tumblr", "socials", "siTumblr"),
+  soon("pixelfed", "Pixelfed", "socials", "siPixelfed"),
+  // Werk & Code
+  { id: "github", label: "GitHub", category: "work", icon: "siGithub", mode: "handle", placeholder: "gebruikersnaam", sso: "github" },
+  { id: "gitlab", label: "GitLab", category: "work", icon: "siGitlab", mode: "handle", placeholder: "gebruikersnaam", sso: "gitlab" },
+  { id: "wakatime", label: "WakaTime", category: "work", icon: "siWakatime", mode: "handle", placeholder: "gebruikersnaam (publiek profiel)" },
+  soon("linkedin", "LinkedIn", "work", "custom:linkedin"),
+  // Gezondheid & Fitness
+  soon("strava", "Strava", "health", "siStrava"),
+  soon("oura", "Oura", "health", null),
+  soon("garmin", "Garmin", "health", "siGarmin"),
+  soon("applehealth", "Apple Health", "health", "siApple"),
+  soon("googlefit", "Google Fit", "health", "siGooglefit"),
+  // Design & Portfolio
+  soon("vsco", "VSCO", "design", "siVsco"),
+  soon("behance", "Behance", "design", "siBehance"),
+  soon("dribbble", "Dribbble", "design", "siDribbble"),
+  soon("figma", "Figma", "design", "siFigma"),
+  soon("artstation", "ArtStation", "design", "siArtstation"),
+  soon("pinterest", "Pinterest", "design", "siPinterest"),
+  // Cultuur & Vrije Tijd
+  soon("letterboxd", "Letterboxd", "culture", "siLetterboxd"),
+  soon("chesscom", "Chess.com", "culture", "siChessdotcom"),
+  soon("lichess", "Lichess", "culture", "siLichess"),
+  soon("storygraph", "StoryGraph", "culture", null),
+  soon("goodreads", "Goodreads", "culture", "siGoodreads"),
+  // Smart Home & Zelf-Gehost
+  soon("homeassistant", "Home Assistant", "home", "siHomeassistant"),
+  soon("rss", "RSS / Blog", "home", "siRss"),
+  soon("matrix", "Matrix / Element", "home", "siMatrix"),
+  // Support & Betalingen
+  { id: "lightning", label: "Bitcoin Lightning", category: "payments", icon: "siBitcoin", mode: "address", placeholder: "naam@wallet.com of lnurl…" },
+  { id: "monero", label: "Monero (XMR)", category: "payments", icon: "siMonero", mode: "address", placeholder: "4… publiek adres" },
+  { id: "ethereum", label: "Ethereum", category: "payments", icon: "siEthereum", mode: "address", placeholder: "0x… publiek adres" },
+  soon("stripe", "Stripe", "payments", "siStripe"),
+  soon("buymeacoffee", "Buy Me a Coffee", "payments", "siBuymeacoffee"),
+  soon("paypal", "PayPal", "payments", "siPaypal"),
 ];
 
 export const INTEGRATION_FILTERS = [
@@ -44,15 +105,29 @@ export const INTEGRATION_FILTERS = [
   { id: "gaming", label: "Gaming" },
   { id: "streaming", label: "Streaming" },
   { id: "socials", label: "Socials" },
+  { id: "work", label: "Werk & Code" },
+  { id: "health", label: "Gezondheid & Fitness" },
+  { id: "design", label: "Design & Portfolio" },
+  { id: "culture", label: "Cultuur & Vrije Tijd" },
+  { id: "home", label: "Smart Home & Zelf-Gehost" },
+  { id: "payments", label: "Support & Betalingen" },
   { id: "all", label: "Alles" },
 ] as const;
 
 export type IntegrationFilter = (typeof INTEGRATION_FILTERS)[number]["id"];
 
-const POPULAR: IntegrationId[] = ["spotify", "discord", "steam", "xbox", "playstation"];
+const POPULAR = ["spotify", "youtube", "github", "bluesky", "wsocial", "wakatime", "lightning", "xbox"];
+
+export function integrationById(id: string): Integration | undefined {
+  return INTEGRATIONS.find((i) => i.id === id);
+}
 
 export function filterIntegrations(filter: IntegrationFilter): Integration[] {
   if (filter === "all") return INTEGRATIONS;
-  if (filter === "popular") return POPULAR.map((id) => INTEGRATIONS.find((i) => i.id === id)!);
+  if (filter === "popular") return POPULAR.map((id) => integrationById(id)!).filter(Boolean);
   return INTEGRATIONS.filter((i) => i.category === filter);
+}
+
+export function isLive(item: Integration): boolean {
+  return item.mode !== "soon";
 }
