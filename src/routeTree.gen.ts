@@ -95,6 +95,8 @@ import { Route as ApiPublicAvatarRouteImport } from './routes/api_.public.avatar
 import { Route as ApiPublicBrandLogoRouteImport } from './routes/api_.public.brand-logo'
 import { Route as ApiPublicGalleryMediaRouteImport } from './routes/api_.public.gallery-media'
 import { Route as ApiPublicHealthRouteImport } from './routes/api_.public.health'
+import { Route as ApiPublicIntegrationsRouteImport } from './routes/api_.public.integrations'
+import { Route as ApiPublicProxyImageRouteImport } from './routes/api_.public.proxy-image'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api_.public.stripe-webhook'
 import { Route as ApiSpotifyStartRouteImport } from './routes/api_.spotify.start'
 import { Route as AuthMastodonCallbackRouteImport } from './routes/auth_.mastodon.callback'
@@ -585,6 +587,16 @@ const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   path: '/api/public/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIntegrationsRoute = ApiPublicIntegrationsRouteImport.update({
+  id: '/api_/public/integrations',
+  path: '/api/public/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicProxyImageRoute = ApiPublicProxyImageRouteImport.update({
+  id: '/api_/public/proxy-image',
+  path: '/api/public/proxy-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api_/public/stripe-webhook',
   path: '/api/public/stripe-webhook',
@@ -924,6 +936,8 @@ export interface FileRoutesByFullPath {
   '/api/public/brand-logo': typeof ApiPublicBrandLogoRoute
   '/api/public/gallery-media': typeof ApiPublicGalleryMediaRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/integrations': typeof ApiPublicIntegrationsRoute
+  '/api/public/proxy-image': typeof ApiPublicProxyImageRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/spotify/start': typeof ApiSpotifyStartRoute
   '/auth/mastodon/callback': typeof AuthMastodonCallbackRoute
@@ -1053,6 +1067,8 @@ export interface FileRoutesByTo {
   '/api/public/brand-logo': typeof ApiPublicBrandLogoRoute
   '/api/public/gallery-media': typeof ApiPublicGalleryMediaRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/integrations': typeof ApiPublicIntegrationsRoute
+  '/api/public/proxy-image': typeof ApiPublicProxyImageRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/spotify/start': typeof ApiSpotifyStartRoute
   '/auth/mastodon/callback': typeof AuthMastodonCallbackRoute
@@ -1186,6 +1202,8 @@ export interface FileRoutesById {
   '/api_/public/brand-logo': typeof ApiPublicBrandLogoRoute
   '/api_/public/gallery-media': typeof ApiPublicGalleryMediaRoute
   '/api_/public/health': typeof ApiPublicHealthRoute
+  '/api_/public/integrations': typeof ApiPublicIntegrationsRoute
+  '/api_/public/proxy-image': typeof ApiPublicProxyImageRoute
   '/api_/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api_/spotify/start': typeof ApiSpotifyStartRoute
   '/auth_/mastodon/callback': typeof AuthMastodonCallbackRoute
@@ -1320,6 +1338,8 @@ export interface FileRouteTypes {
     | '/api/public/brand-logo'
     | '/api/public/gallery-media'
     | '/api/public/health'
+    | '/api/public/integrations'
+    | '/api/public/proxy-image'
     | '/api/public/stripe-webhook'
     | '/api/spotify/start'
     | '/auth/mastodon/callback'
@@ -1449,6 +1469,8 @@ export interface FileRouteTypes {
     | '/api/public/brand-logo'
     | '/api/public/gallery-media'
     | '/api/public/health'
+    | '/api/public/integrations'
+    | '/api/public/proxy-image'
     | '/api/public/stripe-webhook'
     | '/api/spotify/start'
     | '/auth/mastodon/callback'
@@ -1581,6 +1603,8 @@ export interface FileRouteTypes {
     | '/api_/public/brand-logo'
     | '/api_/public/gallery-media'
     | '/api_/public/health'
+    | '/api_/public/integrations'
+    | '/api_/public/proxy-image'
     | '/api_/public/stripe-webhook'
     | '/api_/spotify/start'
     | '/auth_/mastodon/callback'
@@ -1686,6 +1710,8 @@ export interface RootRouteChildren {
   ApiPublicBrandLogoRoute: typeof ApiPublicBrandLogoRoute
   ApiPublicGalleryMediaRoute: typeof ApiPublicGalleryMediaRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
+  ApiPublicIntegrationsRoute: typeof ApiPublicIntegrationsRoute
+  ApiPublicProxyImageRoute: typeof ApiPublicProxyImageRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   ApiSpotifyStartRoute: typeof ApiSpotifyStartRoute
   AuthMastodonCallbackRoute: typeof AuthMastodonCallbackRoute
@@ -2318,6 +2344,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api_/public/integrations': {
+      id: '/api_/public/integrations'
+      path: '/api/public/integrations'
+      fullPath: '/api/public/integrations'
+      preLoaderRoute: typeof ApiPublicIntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api_/public/proxy-image': {
+      id: '/api_/public/proxy-image'
+      path: '/api/public/proxy-image'
+      fullPath: '/api/public/proxy-image'
+      preLoaderRoute: typeof ApiPublicProxyImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api_/public/stripe-webhook': {
       id: '/api_/public/stripe-webhook'
       path: '/api/public/stripe-webhook'
@@ -2905,6 +2945,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBrandLogoRoute: ApiPublicBrandLogoRoute,
   ApiPublicGalleryMediaRoute: ApiPublicGalleryMediaRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
+  ApiPublicIntegrationsRoute: ApiPublicIntegrationsRoute,
+  ApiPublicProxyImageRoute: ApiPublicProxyImageRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   ApiSpotifyStartRoute: ApiSpotifyStartRoute,
   AuthMastodonCallbackRoute: AuthMastodonCallbackRoute,
