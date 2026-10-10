@@ -22,3 +22,5 @@
 - [x] Live Status & Gedachten + Verbindingen & Integraties sections, Spotify Now Playing
 - [ ] Spotify keys (SPOTIFY_CLIENT_ID/SECRET, PSP_ENCRYPTION_KEY) from user
 - [x] Email as code: all mails own dark design first, Brevo fallback, OTP auto-submit
+- [ ] Neon secrets (DATABASE_URL rout_app, MIGRATION_URL) requested via secure form; then run migrations
+- [ ] Connections Hub overhaul (plan approved Oct 10)
