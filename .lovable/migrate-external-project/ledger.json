@@ -1,0 +1,11 @@
+[
+ {"capability":"code","source":"GitHub Routbe/navigator-pal-7efd4e9e (TanStack Start)","outcome":"migrate","status":"in_progress","next_action":"Copy code, install deps, check build"},
+ {"capability":"schema","source":"Neon db/NN_*.sql","outcome":"keep (user chose Neon)","status":"pending","next_action":"User runs bun scripts/migrate.ts with MIGRATION_URL"},
+ {"capability":"records","source":"Neon","outcome":"keep in place","status":"verified","next_action":"none - data stays in Neon"},
+ {"capability":"auth","source":"Better Auth on Neon","outcome":"keep (user chose)","status":"pending","next_action":"Add BETTER_AUTH_SECRET/URL, provider keys"},
+ {"capability":"storage","source":"Scaleway Object Storage","outcome":"preserve","status":"pending","next_action":"Add S3 keys"},
+ {"capability":"email","source":"Brevo","outcome":"preserve","status":"pending","next_action":"Add Brevo key"},
+ {"capability":"payments","source":"Stripe","outcome":"preserve","status":"pending","next_action":"Add Stripe keys"},
+ {"capability":"secrets","source":"ENVIRONMENT.md","outcome":"preserve","status":"pending","next_action":"Add DATABASE_URL etc. securely when verifying"},
+ {"capability":"cutover","source":"Vercel + cron /api/public/cron/*","outcome":"preserve","status":"pending","next_action":"Unchanged deployment on Vercel"}
+]
