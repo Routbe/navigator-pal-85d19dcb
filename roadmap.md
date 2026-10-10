@@ -24,3 +24,4 @@
 - [x] Email as code: all mails own dark design first, Brevo fallback, OTP auto-submit
 - [ ] Neon secrets (DATABASE_URL rout_app, MIGRATION_URL) requested via secure form; then run migrations
 - [ ] Connections Hub overhaul (plan approved Oct 10)
+- [ ] NEON_API_KEY requested (Neon console management key, optional)
