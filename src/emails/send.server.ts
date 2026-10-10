@@ -329,17 +329,28 @@ export async function sendMail(opts: MailOptions): Promise<{ sent: boolean; erro
     });
   }
 
-  // 4 — inline HTML / plain text body rendered by us (first when htmlFirst).
+  // 4 — our own rendered body. Fragments get the ROUT frame and go first
+  // (email as code); Brevo templates stay as the safety net.
   if (opts.html || opts.text) {
-    const html = opts.html ?? `<pre>${opts.text}</pre>`;
-    attempts[opts.htmlFirst && opts.html ? "unshift" : "push"]({
-      label: "inline HTML fallback body",
+    let html = opts.html ?? `<pre>${opts.text}</pre>`;
+    const text = opts.text ?? textFromHtml(html);
+    let first = Boolean(opts.htmlFirst && opts.html);
+    if (opts.html && !/<html[\s>]/i.test(opts.html)) {
+      const { brandHtml } = await import("./react/branded.server");
+      const branded = await brandHtml(opts.html, { language: opts.language, preview: opts.subject });
+      if (branded) {
+        html = branded;
+        first = true;
+      }
+    }
+    attempts[first ? "unshift" : "push"]({
+      label: "inline HTML body",
       id: "inline",
       body: {
         ...base,
         subject: opts.subject ?? "ROUT",
         htmlContent: html,
-        textContent: opts.text ?? textFromHtml(html),
+        textContent: text,
       },
     });
   }
