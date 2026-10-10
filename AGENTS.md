@@ -36,3 +36,5 @@
 - Community stats are live counts; reviews show only when `approved` (db/65); empty sections hide. Why: no fake social proof.
 - Approving a verification cancels that user's other open same-tier requests (`verification-dedupe.ts`). Why: no duplicate admin work.
 - Vercel builds use nitro's `vercel` preset (auto via `VERCEL`); the sandbox forces cloudflare, so test with sandbox env vars unset. Why: sandbox ignores preset overrides.
+- Third-party images on public pages load only through `/api/public/proxy-image` (host allowlist in `src/lib/image-proxy-rules.ts`). Why: visitors' IPs must never reach Big Tech image hosts.
+- Hub connections live in `user_integrations` (db/73) with a per-row Pro/Social/Both audience; `verified` is set only server-side when the handle matches a sign-in identity. Why: typed handles must never look cryptographically proven.

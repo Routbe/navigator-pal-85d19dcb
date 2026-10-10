@@ -1,29 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Gamepad2, Loader2 } from "lucide-react";
-import * as icons from "simple-icons";
+import { BadgeCheck, Loader2 } from "lucide-react";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { BrandIcon } from "@/components/integrations/BrandIcon";
 import {
   INTEGRATION_FILTERS,
   filterIntegrations,
+  isLive,
   type Integration,
   type IntegrationFilter,
 } from "@/lib/integrations-catalog";
+import { normalizeIntegrationValue, type Audience } from "@/lib/integrations-rules";
 import { disconnectSpotifyPresence, getMyPresence, setSpotifyPresenceVisible } from "@/lib/presence.functions";
-
-function BrandIcon({ item }: { item: Integration }) {
-  const si = item.icon ? (icons as unknown as Record<string, { path: string; hex: string }>)[item.icon] : null;
-  if (!si) return <Gamepad2 className="h-6 w-6" aria-hidden />;
-  return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden style={{ fill: `#${si.hex}` }}>
-      <path d={si.path} />
-    </svg>
-  );
-}
+import { getMyIntegrations, removeIntegration, saveIntegration } from "@/lib/integrations.functions";
 
 const SPOTIFY_MESSAGES: Record<string, [ok: boolean, text: string]> = {
   connected: [true, "Spotify gekoppeld"],
@@ -33,16 +26,52 @@ const SPOTIFY_MESSAGES: Record<string, [ok: boolean, text: string]> = {
   failed: [false, "Spotify koppelen mislukt"],
 };
 
-/** 🔌 Verbindingen & Integraties — App Store-achtig raster voor Live Presence. */
+const AUDIENCE_LABEL: Record<Audience, string> = { pro: "Pro", social: "Social", both: "Beide" };
+
+function AudiencePicker({ value, onChange, disabled }: { value: Audience; onChange: (a: Audience) => void; disabled?: boolean }) {
+  return (
+    <div role="radiogroup" aria-label="Toon op profiel" className="grid grid-cols-3 gap-1 rounded-lg border border-border p-0.5">
+      {(["pro", "social", "both"] as Audience[]).map((a) => (
+        <button
+          key={a}
+          type="button"
+          role="radio"
+          aria-checked={value === a}
+          disabled={disabled}
+          onClick={() => onChange(a)}
+          className={cn(
+            "h-6 rounded-md text-[10px] font-medium transition-colors",
+            value === a ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted",
+          )}
+        >
+          {AUDIENCE_LABEL[a]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** 🔌 Verbindingen & Integraties — app-store raster voor live kaarten op het profiel. */
 export function IntegrationsAccordion() {
   const [filter, setFilter] = useState<IntegrationFilter>("popular");
   const qc = useQueryClient();
   const fetchPresence = useServerFn(getMyPresence);
   const setVisible = useServerFn(setSpotifyPresenceVisible);
   const disconnect = useServerFn(disconnectSpotifyPresence);
+  const fetchMine = useServerFn(getMyIntegrations);
+  const save = useServerFn(saveIntegration);
+  const remove = useServerFn(removeIntegration);
+
   const presence = useQuery({ queryKey: ["my-presence"], queryFn: () => fetchPresence(), retry: false });
+  const mine = useQuery({ queryKey: ["my-integrations"], queryFn: () => fetchMine(), retry: false });
   const spotify = presence.data?.connections.find((c) => c.provider === "spotify");
-  const [busy, setBusy] = useState(false);
+  const saved = useMemo(() => new Map((mine.data?.items ?? []).map((i) => [i.provider, i])), [mine.data]);
+  const sso = mine.data?.sso ?? {};
+
+  const [open, setOpen] = useState<string | null>(null);
+  const [value, setValue] = useState("");
+  const [audience, setAudience] = useState<Audience>("both");
+  const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -54,57 +83,95 @@ export function IntegrationsAccordion() {
     window.history.replaceState(null, "", url.toString());
   }, []);
 
-  const onConnect = (item: Integration) => {
-    if (!item.live) {
-      toast(`${item.label} komt eraan`, { description: "Deze koppeling is in ontwikkeling. Spotify werkt al." });
-      return;
-    }
-    if (presence.data && !presence.data.spotifyReady) {
-      toast.error("Spotify is nog niet ingesteld op ROUT");
-      return;
-    }
-    window.location.href = "/api/spotify/start";
-  };
+  const refresh = () => qc.invalidateQueries({ queryKey: ["my-integrations"] });
 
-  const toggle = async (show: boolean) => {
-    setBusy(true);
+  const persist = async (item: Integration, opts: { handle?: string; audience: Audience; visible: boolean; useSso?: boolean }) => {
+    if (mine.data && !mine.data.ready) {
+      toast.error("Database-update nodig", { description: "De tabel voor koppelingen bestaat nog niet." });
+      return false;
+    }
+    setBusy(item.id);
     try {
-      await setVisible({ data: { show } });
-      await qc.invalidateQueries({ queryKey: ["my-presence"] });
-      toast.success(show ? "Live Presence staat aan" : "Live Presence staat uit");
+      const r = await save({ data: { provider: item.id, ...opts } });
+      if (!r.ok) {
+        toast.error(r.error === "invalid_value" ? `Dit is geen geldige ${item.mode === "address" ? "adres" : "gebruikersnaam"}` : "Opslaan mislukt");
+        return false;
+      }
+      await refresh();
+      return true;
     } catch {
       toast.error("Opslaan mislukt");
+      return false;
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
-  const unlink = async () => {
-    setBusy(true);
-    try {
-      await disconnect();
-      await qc.invalidateQueries({ queryKey: ["my-presence"] });
-      toast.success("Spotify ontkoppeld");
-    } finally {
-      setBusy(false);
+  const onPrimary = async (item: Integration) => {
+    if (!isLive(item)) {
+      toast(`${item.label} komt eraan`, { description: "Deze koppeling is in ontwikkeling." });
+      return;
+    }
+    if (item.mode === "oauth") {
+      if (presence.data && !presence.data.spotifyReady) return void toast.error("Spotify is nog niet ingesteld op ROUT");
+      window.location.href = "/api/spotify/start";
+      return;
+    }
+    if (sso[item.id]) {
+      if (await persist(item, { audience: "both", visible: true, useSso: true })) toast.success(`${item.label} geactiveerd`);
+      return;
+    }
+    setOpen(open === item.id ? null : item.id);
+    setValue("");
+    setAudience("both");
+  };
+
+  const submit = async (item: Integration) => {
+    if (!normalizeIntegrationValue(item.id, value)) {
+      toast.error(item.mode === "address" ? "Dit adres herkennen we niet" : "Deze gebruikersnaam klopt niet");
+      return;
+    }
+    if (await persist(item, { handle: value, audience, visible: true })) {
+      toast.success(`${item.label} gekoppeld`);
+      setOpen(null);
     }
   };
+
+  const unlink = async (item: Integration) => {
+    setBusy(item.id);
+    try {
+      if (item.mode === "oauth") {
+        await disconnect();
+        await qc.invalidateQueries({ queryKey: ["my-presence"] });
+      } else {
+        await remove({ data: { provider: item.id } });
+        await refresh();
+      }
+      toast.success(`${item.label} ontkoppeld`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const connectedCount = (spotify ? 1 : 0) + saved.size;
 
   return (
     <AccordionItem value="integrations" className="rounded-2xl border border-border bg-card px-4 sm:px-5">
       <AccordionTrigger className="hover:no-underline">
-        <span className="flex flex-1 items-center justify-between gap-3 pr-2">
-          <span className="text-base font-medium">🔌 Verbindingen &amp; Integraties</span>
-          {spotify && (
-            <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground">1 gekoppeld</span>
+        <span className="flex min-w-0 flex-1 items-center justify-between gap-3 pr-2">
+          <span className="min-w-0 truncate text-left text-base font-medium">🔌 Verbindingen &amp; Integraties</span>
+          {connectedCount > 0 && (
+            <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+              {connectedCount} gekoppeld
+            </span>
           )}
         </span>
       </AccordionTrigger>
       <AccordionContent className="space-y-4 pb-5">
         <p className="text-sm text-muted-foreground">
-          Koppel je diensten en toon live wat je luistert of speelt op je profiel.
+          Koppel je diensten en toon live kaarten op je profiel. Kies per koppeling of ze op je Pro-, Social- of beide profielen verschijnt.
         </p>
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Categorie">
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]" role="tablist" aria-label="Categorie">
           {INTEGRATION_FILTERS.map((f) => (
             <button
               key={f.id}
@@ -113,7 +180,7 @@ export function IntegrationsAccordion() {
               aria-selected={filter === f.id}
               onClick={() => setFilter(f.id)}
               className={cn(
-                "h-8 shrink-0 rounded-full border px-3 text-xs font-medium transition-colors",
+                "h-8 shrink-0 whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors",
                 filter === f.id ? "border-primary/50 bg-primary/10" : "border-border hover:bg-muted",
               )}
             >
@@ -122,54 +189,128 @@ export function IntegrationsAccordion() {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:grid-cols-3">
           {filterIntegrations(filter).map((item) => {
-            const connected = item.id === "spotify" && Boolean(spotify);
+            const row = saved.get(item.id);
+            const isSpotify = item.mode === "oauth";
+            const connected = isSpotify ? Boolean(spotify) : Boolean(row);
+            const live = isLive(item);
+            const canActivate = !connected && Boolean(sso[item.id]);
+            const status = connected
+              ? isSpotify
+                ? spotify?.accountName ?? "Gekoppeld"
+                : row!.handle
+              : canActivate
+                ? `Ingelogd als ${sso[item.id]}`
+                : live
+                  ? "Beschikbaar"
+                  : "Binnenkort";
             return (
               <div
                 key={item.id}
                 className={cn(
-                  "flex flex-col gap-3 rounded-xl border p-3 transition-all",
+                  "flex min-w-0 flex-col gap-3 rounded-xl border p-3 transition-all",
                   connected ? "border-primary/50 bg-primary/5" : "border-border",
+                  !live && "opacity-70",
                 )}
               >
-                <div className="flex items-center gap-2.5">
+                <div className="flex min-w-0 items-center gap-2.5">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background">
-                    <BrandIcon item={item} />
+                    <BrandIcon icon={item.icon} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">{item.label}</span>
-                    <span className="block truncate text-[11px] text-muted-foreground">
-                      {connected ? spotify?.accountName ?? "Gekoppeld" : item.live ? "Beschikbaar" : "Binnenkort"}
+                    <span className="flex items-center gap-1 truncate text-sm font-medium">
+                      <span className="truncate">{item.label}</span>
+                      {row?.verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="Geverifieerd via inloggen" />}
                     </span>
+                    <span className="block truncate text-[11px] text-muted-foreground">{status}</span>
                   </span>
                 </div>
-                {connected ? (
+
+                {connected && isSpotify ? (
                   <div className="space-y-2">
                     <label className="flex items-center justify-between gap-2 text-[11px]">
-                      <span>Toon Live Presence op profiel</span>
+                      <span>Toon op profiel</span>
                       <Switch
-                        aria-label="Toon Live Presence op profiel"
+                        aria-label="Toon Spotify op profiel"
                         checked={spotify!.showOnProfile}
-                        disabled={busy}
-                        onCheckedChange={(v) => void toggle(v)}
+                        disabled={busy === item.id}
+                        onCheckedChange={async (v) => {
+                          setBusy(item.id);
+                          try {
+                            await setVisible({ data: { show: v } });
+                            await qc.invalidateQueries({ queryKey: ["my-presence"] });
+                          } finally {
+                            setBusy(null);
+                          }
+                        }}
                       />
                     </label>
-                    <button type="button" onClick={() => void unlink()} disabled={busy} className="text-[11px] text-muted-foreground underline">
+                    <button type="button" onClick={() => void unlink(item)} disabled={busy === item.id} className="text-[11px] text-muted-foreground underline">
                       Ontkoppelen
                     </button>
                   </div>
+                ) : connected && row ? (
+                  <div className="space-y-2">
+                    <AudiencePicker
+                      value={row.audience}
+                      disabled={busy === item.id}
+                      onChange={(a) => void persist(item, { handle: row.handle, audience: a, visible: row.visible, useSso: row.verified })}
+                    />
+                    <label className="flex items-center justify-between gap-2 text-[11px]">
+                      <span>Toon op profiel</span>
+                      <Switch
+                        aria-label={`Toon ${item.label} op profiel`}
+                        checked={row.visible}
+                        disabled={busy === item.id}
+                        onCheckedChange={(v) => void persist(item, { handle: row.handle, audience: row.audience, visible: v, useSso: row.verified })}
+                      />
+                    </label>
+                    <button type="button" onClick={() => void unlink(item)} disabled={busy === item.id} className="text-[11px] text-muted-foreground underline">
+                      Ontkoppelen
+                    </button>
+                  </div>
+                ) : open === item.id ? (
+                  <form
+                    className="space-y-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void submit(item);
+                    }}
+                  >
+                    <input
+                      autoFocus
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      placeholder={item.placeholder}
+                      aria-label={`${item.label} ${item.mode === "address" ? "adres" : "gebruikersnaam"}`}
+                      className="h-8 w-full min-w-0 rounded-lg border border-border bg-background px-2 text-xs"
+                    />
+                    {item.mode === "address" && (
+                      <p className="text-[10px] text-muted-foreground">Alleen je publieke adres — nooit een sleutel of herstelzin.</p>
+                    )}
+                    <AudiencePicker value={audience} onChange={setAudience} />
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={busy === item.id} className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-foreground text-xs font-medium text-background">
+                        {busy === item.id ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> : null} Opslaan
+                      </button>
+                      <button type="button" onClick={() => setOpen(null)} className="h-8 rounded-lg border border-border px-2 text-xs">
+                        Annuleer
+                      </button>
+                    </div>
+                  </form>
                 ) : (
                   <button
                     type="button"
-                    onClick={() => onConnect(item)}
+                    onClick={() => void onPrimary(item)}
+                    disabled={busy === item.id}
                     className={cn(
                       "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition-opacity",
-                      item.live ? "bg-foreground text-background hover:opacity-90" : "border border-border text-muted-foreground hover:bg-muted",
+                      live ? "bg-foreground text-background hover:opacity-90" : "border border-border text-muted-foreground hover:bg-muted",
                     )}
                   >
-                    {presence.isLoading && item.live ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> : null}
-                    Koppel
+                    {busy === item.id ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> : null}
+                    {canActivate ? "Activeer" : live ? "Koppel" : "Binnenkort"}
                   </button>
                 )}
               </div>

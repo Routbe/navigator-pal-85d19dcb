@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { proxied } from "@/lib/image-proxy-rules";
 
 type NowPlayingData = { playing: boolean; title?: string; artist?: string; image?: string | null; url?: string | null };
 
@@ -17,7 +18,7 @@ export function NowPlaying({ handle, theme }: { handle: string; theme: { card: s
   if (!d?.playing) return null;
   const body = (
     <div className="flex items-center gap-3 rounded-2xl p-2.5 pr-4" style={{ background: theme.card, border: `1px solid ${theme.border}`, color: theme.text }}>
-      {d.image ? <img src={d.image} alt="" className="h-12 w-12 rounded-lg object-cover" /> : <span className="h-12 w-12 rounded-lg" style={{ background: theme.border }} />}
+      {proxied(d.image) ? <img src={proxied(d.image)!} alt="" referrerPolicy="no-referrer" className="h-12 w-12 rounded-lg object-cover" /> : <span className="h-12 w-12 rounded-lg" style={{ background: theme.border }} />}
       <span className="min-w-0 text-left">
         <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider" style={{ color: theme.muted }}>
           <span className="now-playing-bars" aria-hidden><i /><i /><i /></span> Nu aan het luisteren

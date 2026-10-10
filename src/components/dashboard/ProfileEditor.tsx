@@ -826,7 +826,7 @@ export function ProfileEditor({ variant = "verified" }: { variant?: ProfileVaria
             />
           </button>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:flex-nowrap">
           <button
             type="button"
             onClick={undo}
@@ -1810,7 +1810,8 @@ export function ProfileEditor({ variant = "verified" }: { variant?: ProfileVaria
                     className="h-3 w-3 shrink-0 text-emerald-600 dark:text-emerald-400"
                     aria-hidden
                   />
-                  Concept automatisch opgeslagen
+                  <span className="hidden min-[380px]:inline">Concept automatisch opgeslagen</span>
+                  <span className="min-[380px]:hidden">Opgeslagen</span>
                 </>
               )}
             </p>
